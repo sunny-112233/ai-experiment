@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1793690911656,
+      "tag": "0000_daffy_skin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793694268018,
+      "tag": "0001_military_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793709401510,
+      "tag": "0002_clammy_riptide",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793710876773,
+      "tag": "0003_dusty_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793761896622,
+      "tag": "0004_lame_turbo",
+      "breakpoints": true
+    }
+  ]
+}

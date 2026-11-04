@@ -1,0 +1,182 @@
+[
+  {
+    "field": "participant_code",
+    "label": "被试短编号",
+    "coding": "P加六位以上流水号，例如P000001；原始participant_id仍用于内部关联"
+  },
+  {
+    "field": "response_time_seconds",
+    "label": "单题作答时间（秒）",
+    "coding": "response_time_ms / 1000，不包含上传等待"
+  },
+  {
+    "field": "participant_id",
+    "label": "匿名被试编号",
+    "coding": "服务端随机生成，不含姓名"
+  },
+  {
+    "field": "study",
+    "label": "研究编号",
+    "coding": "1=常识；2=专业知识；3=常识时间压力"
+  },
+  {
+    "field": "training_domain",
+    "label": "培训领域",
+    "coding": "medical=医学；outdoor=户外"
+  },
+  {
+    "field": "training_type",
+    "label": "培训类型",
+    "coding": "common_sense=常识；professional=专业知识"
+  },
+  {
+    "field": "questionnaire_version",
+    "label": "问卷版本",
+    "coding": "A=医学培训；B=户外培训；固定题序"
+  },
+  {
+    "field": "time_pressure",
+    "label": "时间压力",
+    "coding": "none=不限时；high=高压力；研究三仅high"
+  },
+  {
+    "field": "time_limit_ms",
+    "label": "单题时限",
+    "coding": "研究三30000；其他为空"
+  },
+  {
+    "field": "material_version",
+    "label": "材料版本",
+    "coding": "当前2026-11-03-v5"
+  },
+  {
+    "field": "recruitment_batch",
+    "label": "招募批次",
+    "coding": "当前pilot-01，测试阶段"
+  },
+  {
+    "field": "mode",
+    "label": "数据模式",
+    "coding": "当前test；不用于正式分析"
+  },
+  {
+    "field": "started_at",
+    "label": "会话开始时间",
+    "coding": "UTC ISO8601"
+  },
+  {
+    "field": "training_duration_ms",
+    "label": "培训阅读时长",
+    "coding": "毫秒；首次提交阅读时长"
+  },
+  {
+    "field": "completion_status",
+    "label": "完成状态",
+    "coding": "training/tasks/quiz/completed"
+  },
+  {
+    "field": "demographics",
+    "label": "个人信息",
+    "coding": "JSON：sex、age、education"
+  },
+  {
+    "field": "knowledge_quiz",
+    "label": "知识测验",
+    "coding": "JSON数组，依次为最后五题的A/B/C/D"
+  },
+  {
+    "field": "completed_at",
+    "label": "完成时间",
+    "coding": "UTC ISO8601；未完成为空"
+  },
+  {
+    "field": "task_id",
+    "label": "统一题号",
+    "coding": "MEDICAL_01至19；OUTDOOR_01至19"
+  },
+  {
+    "field": "source_question_no",
+    "label": "问卷内题号",
+    "coding": "1至38，保留原卷顺序"
+  },
+  {
+    "field": "task_domain",
+    "label": "任务领域",
+    "coding": "medical/outdoor"
+  },
+  {
+    "field": "task_position",
+    "label": "呈现位置",
+    "coding": "1至38"
+  },
+  {
+    "field": "scenario",
+    "label": "情境原文",
+    "coding": "第一人称情境"
+  },
+  {
+    "field": "ai_advice",
+    "label": "AI建议原文",
+    "coding": "固定材料，未实时调用AI"
+  },
+  {
+    "field": "advice_correctness",
+    "label": "建议正确性",
+    "coding": "尚无研究者编码表，暂为空；不得当成错误建议"
+  },
+  {
+    "field": "adoption_score",
+    "label": "采纳评分",
+    "coding": "1至7；超时为空，不能按0分处理"
+  },
+  {
+    "field": "response_time_ms",
+    "label": "本次页面作答时长",
+    "coding": "毫秒，浏览器计时；刷新后从重新呈现开始"
+  },
+  {
+    "field": "server_elapsed_ms",
+    "label": "服务器题目经过时长",
+    "coding": "毫秒，从首次请求该题至收到提交，包含网络和刷新间隔"
+  },
+  {
+    "field": "timeout",
+    "label": "是否超时",
+    "coding": "1=超时；0=未超时"
+  },
+  {
+    "field": "missing",
+    "label": "是否缺失",
+    "coding": "1=评分缺失；0=评分有效"
+  },
+  {
+    "field": "task_presented_at",
+    "label": "本次页面呈现时间",
+    "coding": "客户端UTC ISO8601"
+  },
+  {
+    "field": "advice_fully_visible_at",
+    "label": "回复完全显示时间",
+    "coding": "客户端UTC ISO8601；动画未结束为空"
+  },
+  {
+    "field": "client_submitted_at",
+    "label": "客户端提交时间",
+    "coding": "UTC ISO8601"
+  },
+  {
+    "field": "server_saved_at",
+    "label": "服务器保存时间",
+    "coding": "UTC ISO8601"
+  },
+  {
+    "field": "animation_duration_ms",
+    "label": "预设动画时长",
+    "coding": "900毫秒；计入30秒时限"
+  },
+  {
+    "field": "primary_outcome",
+    "label": "是否纳入主要指标",
+    "coding": "1=纳入；0=不纳入；空=待确定，按被试绑定的材料版本记录"
+  }
+]

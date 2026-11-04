@@ -1,0 +1,2 @@
+CREATE INDEX `participants_allocation_idx` ON `participants` (`mode`,`recruitment_batch`,`study`,`questionnaire_version`);--> statement-breakpoint
+CREATE INDEX `participants_started_idx` ON `participants` (`started_at`);

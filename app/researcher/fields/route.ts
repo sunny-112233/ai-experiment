@@ -1,0 +1,2 @@
+import fields from "../../../lib/fields.json";
+export async function GET(){const quote=(s:string)=>'"'+s.replace(/"/g,'""')+'"';const csv="\ufeff"+["field,label,coding",...fields.map(f=>[f.field,f.label,f.coding].map(quote).join(","))].join("\r\n");return new Response(csv,{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":"attachment; filename=experiment_data_dictionary.csv"}})}
