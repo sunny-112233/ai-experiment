@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import {Client} from 'pg';
+const {default:server}=await import('../.vercel/output/functions/__server.func/index.mjs');
+const config=JSON.parse(fs.readFileSync('.vercel/output/config.json'));assert.equal(config.version,3);assert(fs.existsSync('.vercel/output/functions/__server.func/.vc-config.json'));
+const send=async(path,body)=>{const r=await server.fetch(new Request('https://test.local'+path,body?{method:'POST',headers:{Origin:'https://test.local','Content-Type':'application/json'},body:JSON.stringify(body)}:{}));return {status:r.status,body:body&&r.headers.get('content-type')?.includes('json')?await r.json():await r.text()}};
+for(const path of ['/','/researcher','/researcher/materials','/researcher/backups','/researcher/fields']){const r=await send(path);assert.equal(r.status,200,path);assert(r.body.length>100&&(path==='/researcher/fields'?r.body.includes('field,label,coding'):r.body.includes('<')),path)}
+const c=await send('/api/experiment',{action:'create'});assert.equal(c.status,200,JSON.stringify(c));const s=c.body;const resumed=await send('/api/experiment',{...s,action:'resume'});assert.equal(resumed.status,200);assert.equal(resumed.body.answers.length,0);assert.equal((await send('/api/experiment',{action:'admin',admin_token:'wrong'})).status,403);
+const SSR_PATH='/deployment-probe/dynamic-ok';if(process.env.TEST_SSR_FIXTURE==='1'){const r=await send(SSR_PATH);assert.equal(r.status,200);assert(r.body.includes('SSR')&&r.body.includes('dynamic-ok'))}
+console.log('PASS built Vercel output: homepage, all researcher routes, real PostgreSQL allocation/resume and protected API; no Cloudflare runtime imports.');

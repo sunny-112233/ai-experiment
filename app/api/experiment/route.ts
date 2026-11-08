@@ -1,5 +1,5 @@
 import {activePackage,packageFor} from '../../../lib/material-versions';
-import {env} from 'cloudflare:workers';
+import {env,withRequest} from '#runtime';
 import {makeWorkbook} from '../../../lib/xlsx';
 import fields from '../../../lib/fields.json';
 import materials from '../../../lib/materials.json';
@@ -39,7 +39,7 @@ async function saveAnswerFast(DB:any,b:any){
  const response=json({ok:true,answer:saved,next:prepared,...(duplicate?{duplicate:true}:{})});response.headers.set('Server-Timing','save;dur='+(Date.now()-began));return response;
 }
 
-export async function POST(req:Request){try{
+async function handle(req:Request){try{
  const DB=env.DB!;if(!DB)fail('数据库暂不可用',503);
  if(req.headers.get('origin')&&req.headers.get('origin')!==new URL(req.url).origin)fail('请求来源无效',403);
  if(Number(req.headers.get('content-length')||0)>131072)fail('请求过大',413);
@@ -56,6 +56,11 @@ export async function POST(req:Request){try{
  }
  if(b.action==='admin'){
   const secret=(env as any).ADMIN_TOKEN;if(!secret||typeof b.admin_token!=='string'||await hash(secret)!==await hash(b.admin_token))fail('后台访问口令错误',403);
+  if(b.detail_participant_id!==undefined){
+   if(typeof b.detail_participant_id!=='string')fail('被试编号无效');
+   const person:any=await DB.prepare('SELECT * FROM participants WHERE participant_id=?').bind(b.detail_participant_id).first();if(!person)fail('记录不存在',404);delete person.token_hash;delete person.rowid;person.participant_code=await codeFor(DB,person.participant_id);
+   const records=await DB.prepare('SELECT * FROM responses WHERE participant_id=? ORDER BY task_position').bind(person.participant_id).all();return json({participant:person,answers:records.results});
+  }
   const f=b.filters||{};const conditions:string[]=[],args:any[]=[];
   if(f.study!==undefined&&f.study!==''){if(![1,2,3].includes(Number(f.study)))fail('研究筛选无效');conditions.push('p.study=?');args.push(Number(f.study))}
   if(f.material_key!==undefined&&f.material_key!==''){if(!['basicA','basicB','expertA','expertB'].includes(f.material_key))fail('培训内容筛选无效');conditions.push('p.material_key=?');args.push(f.material_key)}
@@ -79,7 +84,7 @@ export async function POST(req:Request){try{
    for(let i=1;i<=5;i++)dictionary.push({field:'quiz_'+i,label:'知识测验第'+i+'题',coding:'A/B/C/D；未完成为空'});
    const seen=new Set();const questions=rows.filter(r=>{const key=r.material_version+'|'+r.questionnaire_version+'|'+r.training_type+'|'+r.task_id;if(seen.has(key))return false;seen.add(key);return true}).map(r=>[r.material_version,r.questionnaire_version,r.training_type,r.task_id,r.task_domain,r.scenario,r.ai_advice]);
    const bytes=makeWorkbook([{name:'被试数据',rows:[headers,...wide]},{name:'题目说明',rows:[['material_version','questionnaire_version','training_type','task_id','domain','scenario','ai_advice'],...questions]},{name:'变量说明',rows:[['字段','说明','编码'],...dictionary.map(f=>[f.field,f.label,f.coding])]}]);
-   return new Response(bytes as any,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':'attachment; filename=experiment_data.xlsx','Cache-Control':'no-store'}});
+   let offset=0;const stream=new ReadableStream({pull(c){if(offset>=bytes.length){c.close();return}c.enqueue(bytes.subarray(offset,offset+65536));offset+=65536}});return new Response(stream,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':'attachment; filename=experiment_data.xlsx','Cache-Control':'no-store'}});
   }
   const requestedPage=b.page===undefined?1:Number(b.page),pageSize=b.page_size===undefined?25:Number(b.page_size);if(!Number.isInteger(requestedPage)||requestedPage<1||![10,25,50,100].includes(pageSize))fail('分页参数无效');
   const count:any=await DB.prepare('SELECT count(*) AS n FROM participants p'+where).bind(...args).first();const totalPages=Math.max(1,Math.ceil(count.n/pageSize)),page=Math.min(requestedPage,totalPages);
@@ -118,3 +123,5 @@ export async function POST(req:Request){try{
  }
  fail('操作无效');
  }catch(e:any){return json({error:e.status?e.message:'保存暂时失败，请重试'},e.status||500)}}
+
+export async function POST(req:Request){try{return await withRequest(req,handle)}catch{return Response.json({error:"服务暂不可用，请重试"},{status:503,headers:{"Cache-Control":"no-store"}})}}
