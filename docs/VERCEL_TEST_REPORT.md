@@ -21,9 +21,17 @@
 | 容量 | 1049名合成被试、38229条作答导出与完整备份通过。Excel为22861219字节，主表1050行（1行表头+1049人）、517列；备份492338字节。一次本地导出+备份约3422ms，不能作为云端耗时承诺 |
 | 保留原材料 | lib/experiment-html.ts、lib/materials.json和原drizzle迁移未改；题序、题文、原量表与研究变量保持原状 |
 
+## Vercel Preview 实际状态
+
+推送后仓库已有 Vercel GitHub 集成自动部署。提交 `2bbe09fefe215b9653c158896108b082ca4ab461` 的 Vercel 检查已返回 **success**。
+
+- 构建记录：https://vercel.com/yz1937994-5653s-projects/ai-experiment/6rv5LubT4YtJKrQWBQbNiZTYmXDn
+- Preview：https://ai-experiment-git-deployment-ve-170a06-yz1937994-5653s-projects.vercel.app
+- 未认证访问返回 HTTP 302 至 Vercel SSO，响应为 Protected by Vercel Authentication。没有关闭保护、没有获取绕过令牌。因此只能确认部署检查成功，不能确认 Preview 内数据库写入、备份与浏览器完整流程通过。
+
 ## 未完成，不能标为通过
 
-- Vercel Preview真实部署及公网端到端：尚未获得可操作的Vercel项目、Preview PostgreSQL及私有S3凭据。本地生成并调用Vercel产物不等于真实部署成功。
+- Vercel Preview 公网端到端：部署检查已成功，但登录保护阻止当前未认证访问。尚无可操作的 Vercel 管理连接、Preview PostgreSQL 及私有 S3 凭据，无法验证真实云端写入和恢复。
 - Neon/其他托管PostgreSQL的TLS、池化、区域与连接配额；真实S3两份独立存储的权限和未授权读取拒绝；均需云端实测。
 - 真实浏览器六套流程逐一人工试测、研究三30秒墙钟计时、断网重试、刷新恢复、后台Excel下载、大文件流式响应；当前只有状态/API与本地产物测试，不能替代这些验收。
 - 生产真实数据迁移、增量切换和回退演练；本次没有执行。
