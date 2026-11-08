@@ -1,9 +1,9 @@
-import {env} from 'cloudflare:workers';
+import {env,withRequest} from '#runtime';
 import {BASE_VERSION,defaultPackage,draftState,packageFor,validatePackage,checkAdmin} from '../../../lib/material-versions';
 import html from '../../../lib/experiment-html';
 export const dynamic='force-dynamic';
 const json=(v:any,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
-export async function POST(req:Request){try{
+async function handle(req:Request){try{
  if(req.headers.get('origin')&&req.headers.get('origin')!==new URL(req.url).origin)return json({error:'请求来源无效'},403);
  const raw=await req.text();if(raw.length>1000000)return json({error:'材料过大'},413);const b=JSON.parse(raw);if(!await checkAdmin(env,b.admin_token))return json({error:'后台访问口令错误'},403);const DB=env.DB!;
  if(b.action==='load'){const state=await draftState(DB);const history=(await DB.prepare('SELECT version_id,published_at FROM material_versions ORDER BY published_at DESC').all()).results;return json({...state,history:[...history,{version_id:BASE_VERSION,published_at:null}]})}
@@ -34,3 +34,5 @@ const originalSaveTask=saveTask;saveTask=async function(score,timeout){if(S.busy
 renderDemographics(PREVIEW_CONFIG.demographics);
 if(PREVIEW_CONFIG.stage==='task'){renderTask()}else if(PREVIEW_CONFIG.stage==='quiz'){renderQuiz()}else if(PREVIEW_CONFIG.stage==='demographics'){page('demographics')}else loadTraining();
 `;
+
+export async function POST(req:Request){try{return await withRequest(req,handle)}catch{return Response.json({error:"服务暂不可用，请重试"},{status:503,headers:{"Cache-Control":"no-store"}})}}

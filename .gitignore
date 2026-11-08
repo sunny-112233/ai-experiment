@@ -50,3 +50,10 @@ yarn-error.log*
 *.db
 *.zip
 /backups/
+
+/.vercel/
+/.output/
+/.nitro/
+/test-results/
+
+!.env.vercel.example

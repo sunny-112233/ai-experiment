@@ -18,9 +18,9 @@ if [[ ! -x "${vinext}" ]]; then
   exit 69
 fi
 
-echo "Running bounded vinext build..."
+echo "Running bounded vinext build --config vite.cloudflare.config.ts..."
 timeout \
   --signal=TERM \
   --kill-after="${SITES_BUILD_KILL_AFTER:-10s}" \
   "${SITES_BUILD_TIMEOUT:-3m}" \
-  "${vinext}" build
+  node "${SITES_PROJECT_ROOT}/node_modules/vite/bin/vite.js" build --config vite.cloudflare.config.ts

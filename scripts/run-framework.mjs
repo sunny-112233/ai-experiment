@@ -8,16 +8,14 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 
 if (managedLinux && command === "build") {
   const result = spawnSync("bash", [
-    fileURLToPath(new URL("./build-verified.sh", import.meta.url)), ...args,
+    fileURLToPath(new URL("./build-verified.sh", import.meta.url)), "--config", "vite.cloudflare.config.ts", ...args,
   ], { stdio: "inherit" });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);
 }
 
 // Import in this process so the preview owner retains its PID and signals.
-const cli = new URL(managedLinux
-  ? "../node_modules/vite/bin/vite.js"
-  : "../node_modules/vinext/dist/cli.js", import.meta.url);
+const cli = new URL("../node_modules/vite/bin/vite.js", import.meta.url);
 process.argv = [process.execPath, fileURLToPath(cli), command,
-  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
+  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), "--config", "vite.cloudflare.config.ts", ...args];
 await import(cli.href);

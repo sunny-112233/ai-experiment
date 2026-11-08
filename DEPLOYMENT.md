@@ -1,3 +1,7 @@
+# Vercel适配分支说明
+
+本分支新增部署方案见 [Vercel部署交付说明](docs/VERCEL_DEPLOYMENT.md) 和 [验收报告](docs/VERCEL_TEST_REPORT.md)。以下保留原Cloudflare部署背景，不能直接当作Vercel步骤。
+
 # 部署与数据迁移说明
 
 ## 当前架构
