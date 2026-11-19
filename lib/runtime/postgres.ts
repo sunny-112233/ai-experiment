@@ -21,6 +21,11 @@ export class PostgresDatabase{
  async atomic<T>(key:string,fn:()=>Promise<T>,isolation='READ COMMITTED'):Promise<T>{
   if(this.scope.getStore())return fn();const c=await this.pool.connect();try{await c.query('BEGIN ISOLATION LEVEL '+isolation);await c.query("SET LOCAL statement_timeout = '20000'");await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[key]);const value=await this.scope.run(c,fn);await c.query('COMMIT');return value}catch(e){await c.query('ROLLBACK');throw e}finally{c.release()}
  }
+ async ensurePlatformSchema(){
+  await this.atomic('platform-schema-v2',async()=>{
+   await this.prepare("ALTER TABLE participants ADD COLUMN IF NOT EXISTS group_id text, ADD COLUMN IF NOT EXISTS ai_variables text").run();
+  });
+ }
  async batch(statements:any[]){return this.atomic('batch:'+crypto.randomUUID(),async()=>{const out=[];for(const s of statements)out.push(await s.all());return out},'REPEATABLE READ')}
  async consistentSnapshot(tables:string[]){return this.atomic('snapshot:'+crypto.randomUUID(),async()=>{const out=[];for(const t of tables){if(!/^[a-z_]+$/.test(t))throw Error('Invalid table');const r=await this.prepare('SELECT * FROM "'+t+'" ORDER BY '+(t==='participants'?'rowid':t==='participant_codes'?'number':t==='material_versions'?'version_id':t==='material_state'?'id':'participant_id,task_id')).all();out.push({results:r.results.map((row:any)=>{const {rowid,...data}=row;return data})})}return out},'REPEATABLE READ')}
 }

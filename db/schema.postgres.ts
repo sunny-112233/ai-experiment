@@ -3,7 +3,7 @@ export const participants = pgTable('participants', {
  rowid:bigserial('rowid',{mode:'number'}).notNull().unique(),participantId:text('participant_id').primaryKey(),tokenHash:text('token_hash').notNull(),study:integer('study').notNull(),
  trainingDomain:text('training_domain').notNull(),trainingType:text('training_type').notNull(),questionnaireVersion:text('questionnaire_version').notNull(),materialKey:text('material_key').notNull(),
  timePressure:text('time_pressure').notNull(),timeLimit:bigint('time_limit_ms',{mode:'number'}),materialVersion:text('material_version').notNull(),batch:text('recruitment_batch').notNull(),mode:text('mode').notNull(),
- startedAt:text('started_at').notNull(),trainingDuration:bigint('training_duration_ms',{mode:'number'}),demographics:text('demographics'),knowledgeQuiz:text('knowledge_quiz'),completedAt:text('completed_at'),status:text('completion_status').notNull()
+ startedAt:text('started_at').notNull(),trainingDuration:bigint('training_duration_ms',{mode:'number'}),groupId:text('group_id'),aiVariables:text('ai_variables'),demographics:text('demographics'),knowledgeQuiz:text('knowledge_quiz'),completedAt:text('completed_at'),status:text('completion_status').notNull()
 },t=>[index('participants_allocation_idx').on(t.mode,t.batch,t.study,t.questionnaireVersion),index('participants_started_idx').on(t.startedAt)]);
 export const responses=pgTable('responses',{
  participantId:text('participant_id').notNull().references(()=>participants.participantId),taskId:text('task_id').notNull(),sourceQuestionNo:integer('source_question_no').notNull(),taskDomain:text('task_domain').notNull(),

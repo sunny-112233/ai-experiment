@@ -1,5 +1,5 @@
 import {env,withRequest} from '#runtime';
-import {BASE_VERSION,defaultPackage,draftState,packageFor,validatePackage,checkAdmin} from '../../../lib/material-versions';
+import {BASE_VERSION,defaultPackage,draftState,packageFor,validatePackage,checkAdmin,editablePackage} from '../../../lib/material-versions';
 import html from '../../../lib/experiment-html';
 export const dynamic='force-dynamic';
 const json=(v:any,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
@@ -18,21 +18,23 @@ async function handle(req:Request){try{
  const latest=await draftState(DB);if(latest.active_version!==version)return json({error:'发布遇到版本冲突，请重新载入后检查'},409);const response=json({version,...latest});response.headers.set('X-Backup-Trigger','materials-published');return response}
  if(b.action==='preview'){
  const p=validatePackage(b.package);if(![1,2,3].includes(b.study)||!['A','B'].includes(b.version))return json({error:'预览条件无效'},400);
- const material=(b.study===2?'expert':'basic')+b.version;
+ const material=b.material||'basic'+b.version;if(!['basicA','basicB','expertA','expertB'].includes(material))return json({error:'材料无效'},400);
+ const display=editablePackage(p);
  // A sandboxed, entirely local simulation. No participant session is created.
- let out=html;const a=out.search(/(?:const|let) DATA=/),end=out.indexOf('let S=',a);if(a<0||end<0)throw new Error('Preview template invalid');out=out.slice(0,a)+'let DATA='+JSON.stringify(p.materials).replace(/</g,'\\u003c')+';\n'+out.slice(end);
- const init=`\nconst PREVIEW_CONFIG=${JSON.stringify({study:b.study,version:b.version,material,stage:b.stage||'training',demographics:p.demographics}).replace(/</g,'\\u003c')};\n`+previewScript;
+ let out=html;const a=out.search(/(?:const|let) DATA=/),end=out.indexOf('let S=',a);if(a<0||end<0)throw new Error('Preview template invalid');out=out.slice(0,a)+'let DATA='+JSON.stringify(display.studies[b.study]).replace(/</g,'\\u003c')+';\n'+out.slice(end);
+ const init=`\nconst PREVIEW_CONFIG=${JSON.stringify({study:b.study,version:b.version,material,stage:b.stage||'training',pressure:b.pressure==='high'?'high':'none',aiVariables:display.aiVariables,demographics:p.demographics}).replace(/</g,'\\u003c')};\n`+previewScript;
  out=out.replace('</script>',init+'</script>').replaceAll('云端测试版','主试预览 · 不保存作答');return json({html:out})}
  return json({error:'操作无效'},400)
  }catch(e:any){return json({error:e.status?e.message:'操作暂时失败，请重试'},e.status||500)}}
 const previewScript=`
-S.preview=true;S.pid='PREVIEW';S.code='主试预览';S.study=PREVIEW_CONFIG.study;S.version=PREVIEW_CONFIG.version;S.pressure=S.study===3?'high':'none';S.material=PREVIEW_CONFIG.material;S.tasks=DATA[S.material].tasks;S.answers=[];S.idx=0;
-api=async function(action,payload={}){if(action==='begin')return {task_id:payload.task_id,remaining_ms:S.study===3?30000:null};if(action==='answer')return {ok:true,answer:{...payload},next:null};return {ok:true}};
+S.preview=true;S.pid='PREVIEW';S.code='主试预览';S.study=PREVIEW_CONFIG.study;S.version=PREVIEW_CONFIG.version;S.pressure=PREVIEW_CONFIG.pressure;S.material=PREVIEW_CONFIG.material;S.tasks=DATA[S.material].tasks;S.answers=[];S.idx=0;
+api=async function(action,payload={}){if(action==='begin')return {task_id:payload.task_id,remaining_ms:S.pressure==='high'?30000:null};if(action==='answer')return {ok:true,answer:{...payload},next:null};return {ok:true}};
 start=async function(){loadTraining()};acceptConsent=async function(){loadTraining()};
 showDone=function(){$('doneId').textContent='预览结束，未保存任何被试记录。';page('done')};
-const originalSaveTask=saveTask;saveTask=async function(score,timeout){if(S.busy)return;S.busy=true;clearInterval(S.timerId);stopAdviceAnimation();S.answers.push({task_id:S.tasks[S.idx].task_id,adoption_score:score});S.idx=S.answers.length;S.busy=false;if(S.idx<38)await renderTask();else page('demographics')};
+const originalSaveTask=saveTask;saveTask=async function(score,timeout){if(S.busy)return;S.busy=true;clearInterval(S.timerId);stopAdviceAnimation();S.answers.push({task_id:S.tasks[S.idx].task_id,adoption_score:score});S.idx=S.answers.length;S.busy=false;if(S.idx<S.tasks.length)await renderTask();else page('demographics')};
+S.aiQuestions=PREVIEW_CONFIG.aiVariables;
 renderDemographics(PREVIEW_CONFIG.demographics);
-if(PREVIEW_CONFIG.stage==='task'){renderTask()}else if(PREVIEW_CONFIG.stage==='quiz'){renderQuiz()}else if(PREVIEW_CONFIG.stage==='demographics'){page('demographics')}else loadTraining();
+if(PREVIEW_CONFIG.stage==='aiVariables'){renderAI()}else if(PREVIEW_CONFIG.stage==='task'){renderTask()}else if(PREVIEW_CONFIG.stage==='quiz'){renderQuiz()}else if(PREVIEW_CONFIG.stage==='demographics'){page('demographics')}else loadTraining();
 `;
 
 export async function POST(req:Request){try{return await withRequest(req,handle)}catch{return Response.json({error:"服务暂不可用，请重试"},{status:503,headers:{"Cache-Control":"no-store"}})}}

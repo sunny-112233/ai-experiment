@@ -14,7 +14,7 @@ export function readArchive(bytes){
 }
 export async function restorePostgres(client,archive,schemaName,schemaSQL){
  if(!/^restore_[a-z0-9_]{1,48}$/.test(schemaName))throw Error('Use a NEW schema named restore_...');
- await client.query('BEGIN');try{await client.query('CREATE SCHEMA "'+schemaName+'"');await client.query('SET LOCAL search_path TO "'+schemaName+'"');await client.query(schemaSQL);
+ await client.query('BEGIN');try{await client.query('CREATE SCHEMA "'+schemaName+'"');await client.query('SET LOCAL search_path TO "'+schemaName+'"');await client.query(schemaSQL);await client.query('ALTER TABLE participants ADD COLUMN IF NOT EXISTS group_id text, ADD COLUMN IF NOT EXISTS ai_variables text');
  for(const t of CORE_TABLES){const columns=(await client.query('SELECT column_name FROM information_schema.columns WHERE table_schema=$1 AND table_name=$2',[schemaName,t])).rows.map(r=>r.column_name);for(const row of archive.data.tables[t]){const keys=Object.keys(row);if(keys.some(k=>!columns.includes(k)))throw Error('Unknown column in '+t);await client.query('INSERT INTO "'+t+'" ('+keys.map(k=>'"'+k+'"').join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',keys.map(k=>row[k]))}const n=Number((await client.query('SELECT count(*) n FROM "'+t+'"')).rows[0].n);if(n!==archive.manifest.counts[t])throw Error('Restore count mismatch')}
  await client.query("SELECT setval(pg_get_serial_sequence('participant_codes','number'),COALESCE((SELECT max(number) FROM participant_codes),1),EXISTS(SELECT 1 FROM participant_codes))");
  // Preserve and document baseline materials even if no published version existed.
