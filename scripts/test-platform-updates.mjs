@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {PGlite} from '@electric-sql/pglite';
 import {PostgresDatabase} from '../lib/runtime/postgres.ts';
 import {env} from '../lib/runtime/vercel.ts';
@@ -39,7 +40,7 @@ draft.instructions={shared:{quiz:'共用测验说明',welcome:'更新欢迎语'}
 const invalid=structuredClone(draft);invalid.aiVariables[0].options.pop();assert.equal((await call(materials,{...admin,action:'save',revision:0,package:invalid})).status,400);
 assert.equal((await call(materials,{...admin,action:'save',revision:0,package:draft})).status,200);
 assert.equal((await call(materials,{...admin,action:'publish',revision:1})).status,200);
-for(const stage of ['home','consent','training','task','demographics','quiz','aiVariables','done']){const preview=await call(materials,{...admin,action:'preview',package:draft,study:2,version:'A',material:'basicA',pressure:'high',stage});assert.equal(preview.status,200,JSON.stringify(preview.d));}
+for(const stage of ['home','consent','training','task','demographics','quiz','aiVariables','done']){const preview=await call(materials,{...admin,action:'preview',package:draft,study:2,version:'A',material:'basicA',pressure:'high',stage});assert.equal(preview.status,200,JSON.stringify(preview.d));assert(preview.d.html.includes('function applyInstructions('));new vm.Script(preview.d.html.match(/<script>([\s\S]*?)<\/script>/)[1]);}
 await enable(['s3-expertB']);
 const s=(await request({action:'create'})).d;const d=(await request({...s,action:'resume'})).d;assert.equal(d.participant.study,3);assert.equal(d.materials.expertB.tasks.length,2);assert.equal(d.aiVariables.length,1);assert.equal(d.instructions.quiz,'研究三测验说明');assert.equal(s.instructions.welcome,'更新欢迎语');assert.notEqual((await request({...sessions[0],action:'resume'})).d.instructions.welcome,'更新欢迎语');
 assert.equal((await request({...s,token:sessions[0].token,action:'resume'})).status,401);

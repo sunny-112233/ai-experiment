@@ -22,7 +22,7 @@ async function handle(req:Request){try{
  const material=b.material||'basic'+b.version;if(!['basicA','basicB','expertA','expertB'].includes(material))return json({error:'材料无效'},400);
  const display=editablePackage(p);
  // A sandboxed, entirely local simulation. No participant session is created.
- let out=html;const a=out.search(/(?:const|let) DATA=/),end=out.indexOf('let S=',a);if(a<0||end<0)throw new Error('Preview template invalid');out=out.slice(0,a)+'let DATA='+JSON.stringify(display.studies[b.study]).replace(/</g,'\\u003c')+';\n'+out.slice(end);
+ let out=html;const a=out.search(/(?:const|let) DATA=/),end=out.indexOf('const DEFAULT_INSTRUCTIONS=',a);if(a<0||end<0)throw new Error('Preview template invalid');out=out.slice(0,a)+'let DATA='+JSON.stringify(display.studies[b.study]).replace(/</g,'\\u003c')+';\n'+out.slice(end);
  const init=`\nconst PREVIEW_CONFIG=${JSON.stringify({study:b.study,version:b.version,material,stage:b.stage||'training',pressure:b.pressure==='high'?'high':'none',aiVariables:display.aiVariables,demographics:p.demographics,instructions:instructionsFor(display,b.study)}).replace(/</g,'\\u003c')};\n`+previewScript;
  out=out.replace('</script>',init+'</script>').replaceAll('云端测试版','主试预览 · 不保存作答');return json({html:out})}
  return json({error:'操作无效'},400)
