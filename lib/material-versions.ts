@@ -1,3 +1,4 @@
+import {DEFAULT_INSTRUCTIONS} from './instructions';
 import baseline from './materials.json';
 export const BASE_VERSION='2026-11-03-v5';
 export const defaultDemographics=[{id:'sex',label:'性别',required:true,options:['男','女','不愿透露']},{id:'age',label:'年龄段',required:true,options:['18岁以下','18~25','26~30','31~40','41~50','51~60','60以上']},{id:'edu',label:'学历',required:true,options:['初中及以下','高中/中专','大学专科','大学本科','研究生及以上']}];
@@ -7,6 +8,8 @@ export function editablePackage(input:any){
  p.studies ||= Object.fromEntries([1,2,3].map(study=>[study,structuredClone(p.materials)]));
  for(const set of Object.values(p.studies) as any[])for(const [key,m] of Object.entries(set) as any){m.quiz.forEach((q:any,i:number)=>q.id ||= key+'_QUIZ_'+(i+1));}
  p.aiVariables ||= [];
+ p.instructions ||= {shared:{},studies:{}};
+
  return p;
 }
 export function participantMaterial(snapshot:any,p:any){return p.group_id&&snapshot.studies?snapshot.studies[p.study][p.material_key]:snapshot.materials[p.material_key]}
@@ -28,7 +31,8 @@ export function validatePackage(p:any){
  if(!Array.isArray(m.quiz)||m.quiz.length>100)fail('知识测验数量无效');m.quiz.forEach((q:any)=>{text(q.question,5000,'知识测验题干');if(!Array.isArray(q.options)||q.options.length<2||q.options.length>10)fail('知识测验需2至10个选项');const codes=new Set();q.options.forEach((o:any)=>{text(o.value,50,'选项编码');if(codes.has(o.value))fail('选项编码重复');codes.add(o.value);text(o.label,5000,'选项')})});
  }}
  if(!Array.isArray(p.demographics)||p.demographics.length>100)fail('个人信息数量无效');const fieldIds=new Set();p.demographics.forEach((d:any)=>{text(d.id,60,'字段编码');if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(d.id)||fieldIds.has(d.id)||['__proto__','constructor','prototype'].includes(d.id))fail('个人信息编码重复或无效');fieldIds.add(d.id);text(d.label,500,'个人信息标题');if(typeof d.required!=='boolean')fail('必答设置无效');options(d.options,'个人信息')});
- if(p.aiVariables!==undefined){if(!Array.isArray(p.aiVariables)||p.aiVariables.length>200)fail('AI变量题数无效');const ids=new Set();p.aiVariables.forEach((q:any)=>{text(q.id,60,'量表题号');if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(q.id)||ids.has(q.id))fail('量表题号重复或无效');ids.add(q.id);text(q.question,5000,'AI变量题干');options(q.options,'AI变量')})}
+ if(p.aiVariables!==undefined){if(!Array.isArray(p.aiVariables)||p.aiVariables.length>200)fail('AI变量题数无效');const ids=new Set();p.aiVariables.forEach((q:any)=>{text(q.id,60,'量表题号');if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(q.id)||ids.has(q.id))fail('量表题号重复或无效');ids.add(q.id);text(q.question,5000,'AI变量题干');options(q.options,'AI变量');if(q.options.length!==5)fail('AI相关变量每题必须保留五个评分选项');if(q.guide!==undefined&&(typeof q.guide!=='string'||q.guide.length>5000))fail('题目指导语无效')})}
+ if(p.instructions!==undefined){const ins=p.instructions;if(!ins||typeof ins!=='object'||Array.isArray(ins))fail('指导语结构无效');const check=(obj:any)=>{if(!obj||typeof obj!=='object'||Array.isArray(obj))fail('指导语结构无效');for(const [key,value] of Object.entries(obj)){if(!Object.hasOwn(DEFAULT_INSTRUCTIONS,key)||typeof value!=='string'||value.length>15000)fail('指导语字段无效或超长')}};if(ins.shared!==undefined)check(ins.shared);if(ins.studies!==undefined){if(!ins.studies||typeof ins.studies!=='object'||Array.isArray(ins.studies))fail('研究指导语结构无效');for(const [study,obj] of Object.entries(ins.studies)){if(!['1','2','3'].includes(study))fail('指导语研究无效');check(obj)}}}
  return p;
 }
 export async function checkAdmin(env:any,token:any){if(typeof token!=='string'||!env.ADMIN_TOKEN)return false;const digest=async(s:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));const a=await digest(token),b=await digest(env.ADMIN_TOKEN);return a.every((v,i)=>v===b[i])}

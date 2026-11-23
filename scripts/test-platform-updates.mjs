@@ -34,12 +34,14 @@ const many=await Promise.all(Array.from({length:12},()=>request({action:'create'
 const original=(await request({...sessions[0],action:'resume'})).d;assert.equal(original.participant.group_id,resumed[0].d.participant.group_id);
 const loaded=(await call(materials,{...admin,action:'load'})).d;const draft=editablePackage(loaded.draft);
 for(const study of Object.values(draft.studies))for(const m of Object.values(study)){m.tasks=m.tasks.slice(0,2).reverse();m.quiz=m.quiz.slice(0,1);}
-draft.demographics=[{id:'custom',label:'自定义信息',required:true,options:['选项一']}];draft.aiVariables=[{id:'AI_TEST',question:'测试量表题',options:['不同意','同意']}];
+draft.demographics=[{id:'custom',label:'自定义信息',required:true,options:['选项一']}];draft.aiVariables=[{id:'AI_TEST',question:'测试量表题',options:['非常不同意','不同意','一般','同意','非常同意']}];
+draft.instructions={shared:{quiz:'共用测验说明',welcome:'更新欢迎语'},studies:{3:{quiz:'研究三测验说明'}}};
+const invalid=structuredClone(draft);invalid.aiVariables[0].options.pop();assert.equal((await call(materials,{...admin,action:'save',revision:0,package:invalid})).status,400);
 assert.equal((await call(materials,{...admin,action:'save',revision:0,package:draft})).status,200);
 assert.equal((await call(materials,{...admin,action:'publish',revision:1})).status,200);
-for(const stage of ['training','task','demographics','quiz','aiVariables']){const preview=await call(materials,{...admin,action:'preview',package:draft,study:2,version:'A',material:'basicA',pressure:'high',stage});assert.equal(preview.status,200,JSON.stringify(preview.d));}
+for(const stage of ['home','consent','training','task','demographics','quiz','aiVariables','done']){const preview=await call(materials,{...admin,action:'preview',package:draft,study:2,version:'A',material:'basicA',pressure:'high',stage});assert.equal(preview.status,200,JSON.stringify(preview.d));}
 await enable(['s3-expertB']);
-const s=(await request({action:'create'})).d;const d=(await request({...s,action:'resume'})).d;assert.equal(d.participant.study,3);assert.equal(d.materials.expertB.tasks.length,2);assert.equal(d.aiVariables.length,1);
+const s=(await request({action:'create'})).d;const d=(await request({...s,action:'resume'})).d;assert.equal(d.participant.study,3);assert.equal(d.materials.expertB.tasks.length,2);assert.equal(d.aiVariables.length,1);assert.equal(d.instructions.quiz,'研究三测验说明');assert.equal(s.instructions.welcome,'更新欢迎语');assert.notEqual((await request({...sessions[0],action:'resume'})).d.instructions.welcome,'更新欢迎语');
 assert.equal((await request({...s,token:sessions[0].token,action:'resume'})).status,401);
 await request({...s,action:'consent'});await request({...s,action:'training',duration_ms:1000});
 for(const task of d.materials.expertB.tasks){await request({...s,action:'begin',task_id:task.task_id});const now=new Date().toISOString();const body={...s,action:'answer',task_id:task.task_id,adoption_score:6,response_time_ms:1000,timeout:false,task_presented_at:now,advice_fully_visible_at:now,client_submitted_at:now};const result=await request(body);assert.equal(result.status,200,JSON.stringify(result.d));assert.equal((await request(body)).d.duplicate,true)}

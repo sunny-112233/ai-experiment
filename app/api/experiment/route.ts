@@ -1,3 +1,4 @@
+import {instructionsFor} from '../../../lib/instructions';
 import {GROUPS,RECRUITMENT_BATCH,recruitmentState} from '../../../lib/recruitment';
 import {activePackage,packageFor,participantMaterial,editablePackage,checkAdmin} from '../../../lib/material-versions';
 import {env,withRequest} from '#runtime';
@@ -60,7 +61,7 @@ async function handle(req:Request){try{
    await DB.prepare('INSERT OR IGNORE INTO material_versions(version_id,payload,published_at) VALUES (?,?,?)').bind(version,JSON.stringify(editablePackage(active.package)),new Date().toISOString()).run();
   }
   await DB.prepare('INSERT INTO participants (participant_id,token_hash,study,training_domain,training_type,questionnaire_version,material_key,time_pressure,time_limit_ms,material_version,recruitment_batch,mode,started_at,completion_status,group_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(pid,await hash(token),group.study,group.material.endsWith('A')?'medical':'outdoor',group.material.startsWith('expert')?'professional':'common_sense',group.material.slice(-1),group.material,group.pressure,group.pressure==='high'?30000:null,version,RECRUITMENT_BATCH,'formal',new Date().toISOString(),'entry',group.id).run();
-  return json({participant_id:pid,participant_code:await codeFor(DB,pid),token});
+  return json({participant_id:pid,participant_code:await codeFor(DB,pid),token,instructions:instructionsFor(active.package,group.study)});
  }
  if(b.action==='recruitment-load'||b.action==='recruitment-save'){
   if(!await checkAdmin(env,b.admin_token))fail('后台访问口令错误',403);
@@ -127,7 +128,7 @@ async function handle(req:Request){try{
  const p:any=await DB.prepare('SELECT * FROM participants WHERE participant_id=? AND token_hash=?').bind(b.participant_id,await hash(b.token)).first();if(!p)fail('会话凭据无效',401);
  const snapshot=await packageFor(DB,p.material_version);const tasks=participantMaterial(snapshot,p).tasks;
  const answers:any=(await DB.prepare('SELECT * FROM responses WHERE participant_id=? ORDER BY task_position').bind(p.participant_id).all()).results;
- if(b.action==='resume')return json({participant:{...p,participant_code:await codeFor(DB,p.participant_id),token_hash:undefined},answers,materials:p.group_id&&snapshot.studies?snapshot.studies[p.study]:snapshot.materials,demographics:snapshot.demographics,aiVariables:snapshot.aiVariables||[]});
+ if(b.action==='resume')return json({participant:{...p,participant_code:await codeFor(DB,p.participant_id),token_hash:undefined},answers,materials:p.group_id&&snapshot.studies?snapshot.studies[p.study]:snapshot.materials,demographics:snapshot.demographics,aiVariables:snapshot.aiVariables||[],instructions:instructionsFor(snapshot,p.study)});
  if(b.action==='consent'){if(p.completion_status==='entry')await DB.prepare("UPDATE participants SET completion_status='training' WHERE participant_id=? AND completion_status='entry'").bind(p.participant_id).run();return json({ok:true})}
  if(b.action==='training'){
   if(p.completion_status==='entry')fail('请先阅读并同意参与说明');

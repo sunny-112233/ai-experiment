@@ -1,3 +1,4 @@
+import {instructionsFor} from '../../../lib/instructions';
 import {env,withRequest} from '#runtime';
 import {BASE_VERSION,defaultPackage,draftState,packageFor,validatePackage,checkAdmin,editablePackage} from '../../../lib/material-versions';
 import html from '../../../lib/experiment-html';
@@ -22,7 +23,7 @@ async function handle(req:Request){try{
  const display=editablePackage(p);
  // A sandboxed, entirely local simulation. No participant session is created.
  let out=html;const a=out.search(/(?:const|let) DATA=/),end=out.indexOf('let S=',a);if(a<0||end<0)throw new Error('Preview template invalid');out=out.slice(0,a)+'let DATA='+JSON.stringify(display.studies[b.study]).replace(/</g,'\\u003c')+';\n'+out.slice(end);
- const init=`\nconst PREVIEW_CONFIG=${JSON.stringify({study:b.study,version:b.version,material,stage:b.stage||'training',pressure:b.pressure==='high'?'high':'none',aiVariables:display.aiVariables,demographics:p.demographics}).replace(/</g,'\\u003c')};\n`+previewScript;
+ const init=`\nconst PREVIEW_CONFIG=${JSON.stringify({study:b.study,version:b.version,material,stage:b.stage||'training',pressure:b.pressure==='high'?'high':'none',aiVariables:display.aiVariables,demographics:p.demographics,instructions:instructionsFor(display,b.study)}).replace(/</g,'\\u003c')};\n`+previewScript;
  out=out.replace('</script>',init+'</script>').replaceAll('云端测试版','主试预览 · 不保存作答');return json({html:out})}
  return json({error:'操作无效'},400)
  }catch(e:any){return json({error:e.status?e.message:'操作暂时失败，请重试'},e.status||500)}}
@@ -32,9 +33,10 @@ api=async function(action,payload={}){if(action==='begin')return {task_id:payloa
 start=async function(){loadTraining()};acceptConsent=async function(){loadTraining()};
 showDone=function(){$('doneId').textContent='预览结束，未保存任何被试记录。';page('done')};
 const originalSaveTask=saveTask;saveTask=async function(score,timeout){if(S.busy)return;S.busy=true;clearInterval(S.timerId);stopAdviceAnimation();S.answers.push({task_id:S.tasks[S.idx].task_id,adoption_score:score});S.idx=S.answers.length;S.busy=false;if(S.idx<S.tasks.length)await renderTask();else page('demographics')};
+applyInstructions(PREVIEW_CONFIG.instructions);
 S.aiQuestions=PREVIEW_CONFIG.aiVariables;
 renderDemographics(PREVIEW_CONFIG.demographics);
-if(PREVIEW_CONFIG.stage==='aiVariables'){renderAI()}else if(PREVIEW_CONFIG.stage==='task'){renderTask()}else if(PREVIEW_CONFIG.stage==='quiz'){renderQuiz()}else if(PREVIEW_CONFIG.stage==='demographics'){page('demographics')}else loadTraining();
+if(['home','consent','done'].includes(PREVIEW_CONFIG.stage)){page(PREVIEW_CONFIG.stage)}else if(PREVIEW_CONFIG.stage==='aiVariables'){renderAI()}else if(PREVIEW_CONFIG.stage==='task'){renderTask()}else if(PREVIEW_CONFIG.stage==='quiz'){renderQuiz()}else if(PREVIEW_CONFIG.stage==='demographics'){page('demographics')}else loadTraining();
 `;
 
 export async function POST(req:Request){try{return await withRequest(req,handle)}catch{return Response.json({error:"服务暂不可用，请重试"},{status:503,headers:{"Cache-Control":"no-store"}})}}
